@@ -9,6 +9,7 @@ input:
 
 import csv, argparse, time, sys, os
 from BCBio import GFF
+from Bio import SeqIO
 
 
 
@@ -65,51 +66,68 @@ def paserGenePA(filename):
 def parserGFF(gffDir, profileDict):
 	print "Reading... "
 	for item in os.listdir(gffDir):
-
-		in_handle = open(gffDir+item)
 		
 		filename=item.replace('.gff', '')
 		print filename
 
-		#for faster parsing
+		#for faster parsing - save all geneIDs needed
 		listOFgenes=[]
 		for gene in profileDict[filename].keys():
 			listOFgenes.append((gene,profileDict[filename][gene][0]))
 
-		for line in in_handle: 
-			if not line.startswith('##'):
-				if line.startswith('gnl') or line.startswith('NZ') or line.startswith('gi'):
-					line=line.split('\t')
-					ID=line[-1].split(';')
-					locusID=str(ID[0].split('=')[1])
-					#print locusID
-					#print profileDict[filename]
-					for gene in listOFgenes:
-						if locusID== gene[1]:
-							#print "found!"
-							contig=line[0]
-							begining=int(line[3])
-							end=int(line[4])
-							sequenceInfo=[contig, begining, end]
-							profileDict[filename][gene[0]].append(sequenceInfo)
-							#print profileDict[filename][gene[0]]
-		in_handle.close()
+		#for faster parsing - save contigs needed
+		contigs={}
 
-		parseGGF4sequence=open(gffDir+item)
-		for rec in GFF.parse(parseGGF4sequence):
-			#print rec.id
-			for geneID, genes in profileDict[filename].items():
-				#print genes
-				if len(genes)>1:
-					if genes[1][0] == rec.id:
-						geneSeq=rec.seq[genes[1][1]:genes[1][2]]
-						genes.append(str(geneSeq))
-						#print genes
+		if os.path.isfile('temp_genes_gff.txt'):
+			os.remove('temp_genes_gff.txt')
+		if os.path.isfile('temp_contigs.fasta'):
+			os.remove('temp_contigs.fasta')
 
-	for key, value in profileDict.items():
+		with open(gffDir+item, 'r') as in_handle, open('temp_genes_gff.txt', 'a') as temp_genes, open('temp_contigs.fasta', 'a') as temp_contigs:
+			for line in in_handle: 
+				if not line.startswith('##'):
+					if '\t' in line:
+						temp_genes.write(line)
+					else:
+						temp_contigs.write(line)
+
+		with open('temp_genes_gff.txt', 'r') as temp_genes:
+			for line in temp_genes:
+				line=line.split('\t')
+				ID=line[-1].split(';')
+				locusID=str(ID[0].split('=')[1])
+				for gene in listOFgenes:
+					if locusID== gene[1]:
+						#print "found!"
+						contig=line[0]
+						begining=int(line[3])
+						end=int(line[4])
+						sequenceInfo=[contig, begining, end]
+
+						if contig not in contigs.keys():
+							contigs[contig]=[[gene[0], gene[1],begining,end]]
+						else:
+							contigs[contig].append([gene[0], gene[1],begining,end])
+		print "...retrieving sequences..."		
+		handle = open("temp_contigs.fasta", "rU")
+		records_dict = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+		handle.close()
+
+		for contig, info in contigs.items():
+			contigSeq=records_dict[contig].seq
+			for item in info:
+				if profileDict[filename][item[0]][0] == item[1]:
+					geneseq=str(contigSeq[item[2]:item[3]])
+					profileDict[filename][item[0]].append(geneseq)
+					#print profileDict[filename][item[0]]
+
+		os.remove('temp_genes_gff.txt')
+		os.remove('temp_contigs.fasta')
+
+	'''for key, value in profileDict.items():
 		print key
 		for k,v in value.items():
-			print v
+			print v'''
 
 
 
