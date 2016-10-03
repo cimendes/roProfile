@@ -8,7 +8,6 @@ input:
 '''
 
 import csv, argparse, time, sys, os
-from gff3 import Gff3 #https://pypi.python.org/pypi/gff3/0.2.0
 from BCBio import GFF
 
 
@@ -33,12 +32,9 @@ def paserGenePA(filename):
 	with open(filename, 'r') as csvfile:
 		reader = csv.reader(csvfile)
 
-		indexDict={}
-		filenames=reader.next()[14:] #save all filenames
-		for name in filenames:
-			indexDict[filenames.index(name)]=name
+		isolates=reader.next()[14:] #save all filenames for the isolates
 
-		IsolateGeneList={}
+		IsolateGeneList={} #dictionary contaning all genes in the pan-genome per isolate
 		geneList=[] # TODO remove! for control!
 
 		for row in reader:
@@ -47,65 +43,74 @@ def paserGenePA(filename):
 
 			for i in range(0,len(genes)):
 				genename=genes[i]
-				filename= indexDict[i]
+				isolate= isolates[i]
 
-				if filename not in IsolateGeneList.keys():
-					IsolateGeneList[filename]=[(row[0],genename)]
+				#gene[row[0]]=[genename]
+				if isolate not in IsolateGeneList.keys():
+					gene={}
+					gene[row[0]]=[genename]
+					#print gene
+					IsolateGeneList[isolate]=gene
+					#print IsolateGeneList[isolate]
 				else:
-					IsolateGeneList[filename].append((row[0],genename))
+					#print IsolateGeneList[isolate]
+					value=IsolateGeneList[isolate]
+					value[row[0]]=[genename]
+					IsolateGeneList[isolate]=value
+		#print len(geneList)
+		#print len(IsolateGeneList['SDSE_ERR109325_02062016'])
+		#print IsolateGeneList
 	return IsolateGeneList
 
 def parserGFF(gffDir, profileDict):
-
+	print "Reading... "
 	for item in os.listdir(gffDir):
-		filename=item.replace('.gff', '')
-		
-		listOFgenes=[]
-		for gene in profileDict[filename]:
-			listOFgenes.append(gene[1])
-		#print listOFgenes
 
 		in_handle = open(gffDir+item)
+		
+		filename=item.replace('.gff', '')
+		print filename
 
-		realIDsList={}
+		#for faster parsing
+		listOFgenes=[]
+		for gene in profileDict[filename].keys():
+			listOFgenes.append((gene,profileDict[filename][gene][0]))
+
 		for line in in_handle: 
 			if not line.startswith('##'):
-					if line.startswith('gnl') or line.startswith('NZ') or line.startswith('gi'):
-						line=line.split('\t')
-						lala=line[-1].split(';')
-						locusID=str(lala[0].split('=')[1])
-						start=int(line[3])
-						end=int(line[4])
-						#print locusID
-						if locusID in listOFgenes:
-							#print locusID
-							realID=line[0]
-							#print realID
-							if realID not in realIDsList.keys():
-								realIDsList[realID] = [[locusID, start, end]]
-							else:
-								realIDsList[realID].append([locusID, start, end])
-
-
-
-		#print realIDsList
+				if line.startswith('gnl') or line.startswith('NZ') or line.startswith('gi'):
+					line=line.split('\t')
+					ID=line[-1].split(';')
+					locusID=str(ID[0].split('=')[1])
+					#print locusID
+					#print profileDict[filename]
+					for gene in listOFgenes:
+						if locusID== gene[1]:
+							#print "found!"
+							contig=line[0]
+							begining=int(line[3])
+							end=int(line[4])
+							sequenceInfo=[contig, begining, end]
+							profileDict[filename][gene[0]].append(sequenceInfo)
+							#print profileDict[filename][gene[0]]
 		in_handle.close()
 
 		parseGGF4sequence=open(gffDir+item)
-		print 'Got Here!'
 		for rec in GFF.parse(parseGGF4sequence):
 			#print rec.id
-			if rec.id in realIDsList.keys():
-   				#print len(rec.seq)
-   				#print rec.id
-   				contigSeq=rec.seq
+			for geneID, genes in profileDict[filename].items():
+				#print genes
+				if len(genes)>1:
+					if genes[1][0] == rec.id:
+						geneSeq=rec.seq[genes[1][1]:genes[1][2]]
+						genes.append(str(geneSeq))
+						#print genes
 
-   				for value in realIDsList[rec.id]:
-   					geneSeq=contigSeq[value[1]:value[2]]
-   					#print len(geneSeq)
-   					value.append(geneSeq)
-		parseGGF4sequence.close()
-		print realIDsList
+	for key, value in profileDict.items():
+		print key
+		for k,v in value.items():
+			print v
+
 
 
 
