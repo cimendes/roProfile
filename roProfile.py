@@ -30,13 +30,14 @@ class Logger(object):
 
 def paserGenePA(filename):
 	#parser for Roary's gene_presence_absence.csv file
+
 	with open(filename, 'r') as csvfile:
 		reader = csv.reader(csvfile)
 
 		isolates=reader.next()[14:] #save all filenames for the isolates
 
 		IsolateGeneList={} #dictionary contaning all genes in the pan-genome per isolate
-		geneList=[] # TODO remove! for control!
+		geneList=[] # for control purposes! should be the same size as the pan-genome obtained in Roary
 
 		for row in reader:
 			geneList.append(row[0])
@@ -44,23 +45,21 @@ def paserGenePA(filename):
 
 			for i in range(0,len(genes)):
 				genename=genes[i]
+				if '\t' in genename: # multiple genes per locus
+					genename=genename.split('\t')
+				else:
+					genename=[genename]
 				isolate= isolates[i]
 
-				#gene[row[0]]=[genename]
 				if isolate not in IsolateGeneList.keys():
 					gene={}
 					gene[row[0]]=[genename]
-					#print gene
 					IsolateGeneList[isolate]=gene
-					#print IsolateGeneList[isolate]
 				else:
-					#print IsolateGeneList[isolate]
 					value=IsolateGeneList[isolate]
 					value[row[0]]=[genename]
 					IsolateGeneList[isolate]=value
-		#print len(geneList)
-		#print len(IsolateGeneList['SDSE_ERR109325_02062016'])
-		#print IsolateGeneList
+
 	return IsolateGeneList
 
 def parserGFF(gffDir, profileDict):
@@ -70,19 +69,13 @@ def parserGFF(gffDir, profileDict):
 		filename=item.replace('.gff', '')
 		print filename
 
-		#for faster parsing - save all geneIDs needed
-		listOFgenes=[]
-		for gene in profileDict[filename].keys():
-			listOFgenes.append((gene,profileDict[filename][gene][0]))
-
-		#for faster parsing - save contigs needed
-		contigs={}
-
+		#cleaning temp files if they exist
 		if os.path.isfile('temp_genes_gff.txt'):
 			os.remove('temp_genes_gff.txt')
 		if os.path.isfile('temp_contigs.fasta'):
 			os.remove('temp_contigs.fasta')
 
+		#separating the gff into 2 different files: one with the annotations and another with the conting sequences
 		with open(gffDir+item, 'r') as in_handle, open('temp_genes_gff.txt', 'a') as temp_genes, open('temp_contigs.fasta', 'a') as temp_contigs:
 			for line in in_handle: 
 				if not line.startswith('##'):
@@ -90,47 +83,55 @@ def parserGFF(gffDir, profileDict):
 						temp_genes.write(line)
 					else:
 						temp_contigs.write(line)
-
+		
+		#parsing the annotation file into a dictionary
+		gffFiles={}
 		with open('temp_genes_gff.txt', 'r') as temp_genes:
 			for line in temp_genes:
 				line=line.split('\t')
 				ID=line[-1].split(';')
 				locusID=str(ID[0].split('=')[1])
-				for gene in listOFgenes:
-					if locusID== gene[1]:
-						#print "found!"
-						contig=line[0]
-						begining=int(line[3])
-						end=int(line[4])
-						sequenceInfo=[contig, begining, end]
-
-						if contig not in contigs.keys():
-							contigs[contig]=[[gene[0], gene[1],begining,end]]
-						else:
-							contigs[contig].append([gene[0], gene[1],begining,end])
-		print "...retrieving sequences..."		
+				contig=line[0]
+				begining=int(line[3])
+				end=int(line[4])
+				location=[contig, begining, end]
+				gffFiles[locusID]=location
+		
+		#parsing the sequence file into a SeqIO dictionary. one contig per entry
 		handle = open("temp_contigs.fasta", "rU")
 		records_dict = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
 		handle.close()
 
-		for contig, info in contigs.items():
-			contigSeq=records_dict[contig].seq
-			for item in info:
-				if profileDict[filename][item[0]][0] == item[1]:
-					geneseq=str(contigSeq[item[2]:item[3]])
-					profileDict[filename][item[0]].append(geneseq)
-					#print profileDict[filename][item[0]]
-
+		#removing temp files
 		os.remove('temp_genes_gff.txt')
 		os.remove('temp_contigs.fasta')
 
-	'''for key, value in profileDict.items():
-		print key
-		for k,v in value.items():
-			print v'''
+		#assigning the gene sequence to each gene in the data scrutute
+		for genegroup, gene in profileDict[filename].items():
+			if len(gene[0])>1: # multitple genes in one locus 
+				multipleGenes=[]
+				for item in gene[0]:
+					geneInfo=gffFiles[item]
+					contigSeq=records_dict[geneInfo[0]].seq
+					geneseq=str(contigSeq[geneInfo[1]:geneInfo[2]])
+					multipleGenes.append([item,geneseq])
+				profileDict[filename][genegroup]=multipleGenes
+			else:
+				if gene[0][0] != '': # make sure the gene exists in this isolate
+					geneInfo= gffFiles[gene[0][0]]
+					contigSeq=records_dict[geneInfo[0]].seq
+					geneseq=str(contigSeq[geneInfo[1]:geneInfo[2]])
+					gene[0].append(geneseq)
+	
+	return profileDict
 
+'''
+def doProfile(sequenceDict):
+	profileDict={}
 
-
+	for isolate, genes in sequenceDict.items():
+		for geneGroup, geneInfo in genes.items():
+'''
 
 def main():
 
