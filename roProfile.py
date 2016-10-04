@@ -147,7 +147,7 @@ def doProfile(sequenceDict):
 					#print item
 					sequence+=item[1]
 				if sequence not in profileSeqDict[geneGroup].keys():
-					number=len(profileSeqDict[geneGroup])+1
+					number=len(profileSeqDict[geneGroup])
 					profileSeqDict[geneGroup][sequence]=number
 				else: 
 					profileNum=profileSeqDict[geneGroup][sequence]
@@ -156,7 +156,7 @@ def doProfile(sequenceDict):
 				if geneInfo[0][0] != '': # make sure the gene exists in this isolate
 					if geneInfo[0][1] not in profileSeqDict[geneGroup].keys():
 						#print profileSeqDict[geneGroup].values()
-						number=len(profileSeqDict[geneGroup])+1
+						number=len(profileSeqDict[geneGroup])
 						profileSeqDict[geneGroup][geneInfo[0][1]]=number
 					else:
 						profileNum=profileSeqDict[geneGroup][geneInfo[0][1]]
