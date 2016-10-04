@@ -59,6 +59,7 @@ def paserGenePA(filename):
 					value=IsolateGeneList[isolate]
 					value[row[0]]=[genename]
 					IsolateGeneList[isolate]=value
+	print "pangenome size: " + str(len(geneList)) + " genes"
 
 	return IsolateGeneList
 
@@ -66,8 +67,8 @@ def parserGFF(gffDir, profileDict):
 	print "Reading... "
 	for item in os.listdir(gffDir):
 		
+		print item
 		filename=item.replace('.gff', '')
-		print filename
 
 		#cleaning temp files if they exist
 		if os.path.isfile('temp_genes_gff.txt'):
@@ -125,13 +126,65 @@ def parserGFF(gffDir, profileDict):
 	
 	return profileDict
 
-'''
-def doProfile(sequenceDict):
-	profileDict={}
 
+def doProfile(sequenceDict):
+	profileIsolate={}
+	loci=[]#keep order to print on file
+	profileSeqDict={}
 	for isolate, genes in sequenceDict.items():
+		print "file " + str(isolate)
+		#print len(genes) #control - should be same size as pan-genome
 		for geneGroup, geneInfo in genes.items():
-'''
+			#print "gene " + str(geneGroup)
+			if geneGroup not in profileSeqDict.keys():
+				temp={}
+				temp['LNF']=0
+				profileSeqDict[geneGroup]=temp #initiate new entry with the profile number for Locus Not Found
+			if len(geneInfo)>1: #multiple genes in one loci
+				#print geneInfo
+				sequence=''
+				for item in geneInfo:
+					#print item
+					sequence+=item[1]
+				if sequence not in profileSeqDict[geneGroup].keys():
+					number=len(profileSeqDict[geneGroup])+1
+					profileSeqDict[geneGroup][sequence]=number
+				else: 
+					profileNum=profileSeqDict[geneGroup][sequence]
+
+			else:
+				if geneInfo[0][0] != '': # make sure the gene exists in this isolate
+					if geneInfo[0][1] not in profileSeqDict[geneGroup].keys():
+						#print profileSeqDict[geneGroup].values()
+						number=len(profileSeqDict[geneGroup])+1
+						profileSeqDict[geneGroup][geneInfo[0][1]]=number
+					else:
+						profileNum=profileSeqDict[geneGroup][geneInfo[0][1]]
+						#print profileNum
+				else:
+					geneSeq='LNF'
+					profileNum=profileSeqDict[geneGroup][geneSeq]
+
+	'''print "CONTROL!"
+	print len(profileSeqDict)'''
+
+	print "...creating sequence files..."
+
+	sequenceDir =str(os.getcwd() + '/sequences/')
+	if not os.path.exists(sequenceDir):
+		os.makedirs(sequenceDir)
+	else:
+		print "sequence directory already exists! emptying directory..."
+		for file in os.listdir(sequenceDir):
+			os.remove(sequenceDir+file)
+
+	for geneGroup, profile in profileSeqDict.items():
+		with open("%sprofileSequences.%s.fasta" % (sequenceDir,geneGroup), 'w') as fasta:
+			for sequence, number in profile.items():
+				fasta.write('>%s\n' % number)
+				fasta.write(sequence+'\n')
+			
+
 
 def main():
 
@@ -170,6 +223,9 @@ def main():
 
 	print 'parsing gff files...'
 	sequenceDict=parserGFF(args.gffdir, profileDict)
+
+	print "creating profiles..."
+	doProfile(sequenceDict)
 
 
 	end_time = time.time()
