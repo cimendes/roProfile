@@ -10,6 +10,7 @@ input:
 import csv, argparse, time, sys, os
 from BCBio import GFF
 from Bio import SeqIO
+import operator
 
 
 
@@ -179,10 +180,16 @@ def doProfile(sequenceDict):
 			os.remove(sequenceDir+file)
 
 	for geneGroup, profile in profileSeqDict.items():
-		with open("%sprofileSequences.%s.fasta" % (sequenceDir,geneGroup), 'w') as fasta:
-			for sequence, number in profile.items():
+		with open("%s%s.fasta" % (sequenceDir,geneGroup), 'w') as fasta:
+
+			sorted_info=sorted(profile.items(), key=operator.itemgetter(1))
+			for item in sorted_info:
+				fasta.write('>%s\n' % item[1])
+				fasta.write(item[0]+'\n')
+
+			'''for sequence, number in profile.items():
 				fasta.write('>%s\n' % number)
-				fasta.write(sequence+'\n')
+				fasta.write(sequence+'\n')'''
 			
 
 
