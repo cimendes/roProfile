@@ -128,40 +128,33 @@ def parserGFF(gffDir, profileDict):
 	return profileDict
 
 
-def doProfile(sequenceDict):
-	profileIsolate={}
-	loci=[]#keep order to print on file
+def doProfileSequences(sequenceDict):
 	profileSeqDict={}
+
 	for isolate, genes in sequenceDict.items():
 		print "file " + str(isolate)
 		#print len(genes) #control - should be same size as pan-genome
 		for geneGroup, geneInfo in genes.items():
-			#print "gene " + str(geneGroup)
 			if geneGroup not in profileSeqDict.keys():
 				temp={}
 				temp['LNF']=0
 				profileSeqDict[geneGroup]=temp #initiate new entry with the profile number for Locus Not Found
 			if len(geneInfo)>1: #multiple genes in one loci
-				#print geneInfo
 				sequence=''
 				for item in geneInfo:
-					#print item
 					sequence+=item[1]
 				if sequence not in profileSeqDict[geneGroup].keys():
 					number=len(profileSeqDict[geneGroup])
 					profileSeqDict[geneGroup][sequence]=number
 				else: 
 					profileNum=profileSeqDict[geneGroup][sequence]
-
 			else:
 				if geneInfo[0][0] != '': # make sure the gene exists in this isolate
 					if geneInfo[0][1] not in profileSeqDict[geneGroup].keys():
-						#print profileSeqDict[geneGroup].values()
 						number=len(profileSeqDict[geneGroup])
 						profileSeqDict[geneGroup][geneInfo[0][1]]=number
 					else:
 						profileNum=profileSeqDict[geneGroup][geneInfo[0][1]]
-						#print profileNum
 				else:
 					geneSeq='LNF'
 					profileNum=profileSeqDict[geneGroup][geneSeq]
@@ -181,16 +174,17 @@ def doProfile(sequenceDict):
 
 	for geneGroup, profile in profileSeqDict.items():
 		with open("%s%s.fasta" % (sequenceDir,geneGroup), 'w') as fasta:
-
 			sorted_info=sorted(profile.items(), key=operator.itemgetter(1))
 			for item in sorted_info:
-				fasta.write('>%s\n' % item[1])
-				fasta.write(item[0]+'\n')
+				if item[1]==0:
+					pass
+				else:
+					fasta.write('>%s\n' % item[1]) #profile number
+					fasta.write(item[0]+'\n') #sequence
+	return profileSeqDict
 
-			'''for sequence, number in profile.items():
-				fasta.write('>%s\n' % number)
-				fasta.write(sequence+'\n')'''
-			
+def doProfileIsolate(sequenceDict,profileSeqDict):
+	pass
 
 
 def main():
@@ -214,7 +208,6 @@ def main():
 		parser.print_usage()
 		if args.roary is None:
 			print "error: argument -r/--roary is required"
-
 		if args.gffdir is None:
 			print "error: argument -d/--gffdir is required"
 		sys.exit(1)
@@ -224,7 +217,7 @@ def main():
 	sys.stdout = Logger("./")
 
 
-	#STRART
+	#START
 	print 'parsing gene presence and absence file...'
 	profileDict=paserGenePA(args.roary + 'gene_presence_absence.csv')
 
@@ -232,7 +225,7 @@ def main():
 	sequenceDict=parserGFF(args.gffdir, profileDict)
 
 	print "creating profiles..."
-	doProfile(sequenceDict)
+	profileSeqDict= doProfileSequences(sequenceDict)
 
 
 	end_time = time.time()
