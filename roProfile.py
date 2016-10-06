@@ -130,11 +130,18 @@ def parserGFF(gffDir, profileDict):
 
 def doProfileSequences(sequenceDict):
 	profileSeqDict={}
+	profileFile={}
+	header=[]
 
+	#profile algorythm algorithm
 	for isolate, genes in sequenceDict.items():
 		print "file " + str(isolate)
 		#print len(genes) #control - should be same size as pan-genome
+		if isolate not in profileFile.keys():
+			profileFile[isolate]={}
 		for geneGroup, geneInfo in genes.items():
+			if geneGroup not in header:
+				header.append(geneGroup)
 			if geneGroup not in profileSeqDict.keys():
 				temp={}
 				temp['LNF']=0
@@ -146,21 +153,38 @@ def doProfileSequences(sequenceDict):
 				if sequence not in profileSeqDict[geneGroup].keys():
 					number=len(profileSeqDict[geneGroup])
 					profileSeqDict[geneGroup][sequence]=number
+					profileFile[isolate][geneGroup]=profileSeqDict[geneGroup][sequence]
+
 				else: 
 					profileNum=profileSeqDict[geneGroup][sequence]
+					profileFile[isolate][geneGroup]=profileNum #!!!!
 			else:
 				if geneInfo[0][0] != '': # make sure the gene exists in this isolate
 					if geneInfo[0][1] not in profileSeqDict[geneGroup].keys():
 						number=len(profileSeqDict[geneGroup])
 						profileSeqDict[geneGroup][geneInfo[0][1]]=number
+						profileFile[isolate][geneGroup]=profileSeqDict[geneGroup][geneInfo[0][1]]
+
 					else:
 						profileNum=profileSeqDict[geneGroup][geneInfo[0][1]]
+						profileFile[isolate][geneGroup]=profileNum 
 				else:
 					geneSeq='LNF'
 					profileNum=profileSeqDict[geneGroup][geneSeq]
+					profileFile[isolate][geneGroup]=profileNum 
 
-	'''print "CONTROL!"
-	print len(profileSeqDict)'''
+
+	print "...creating profile file..."
+
+	with open ("pan-profile.tsv", 'w') as profileOutFile:
+		profileOutFile.write('Isolate\t'+"\t".join(header)+'\n') #header of the file
+		for isolate,profile in profileFile.items():
+			toWrite=[]
+			toWrite.append(isolate)
+			for item in header:
+				allele=str(profile[item])
+				toWrite.append(allele)
+			profileOutFile.write('\t'.join(toWrite)+'\n')
 
 	print "...creating sequence files..."
 
@@ -181,20 +205,16 @@ def doProfileSequences(sequenceDict):
 				else:
 					fasta.write('>%s\n' % item[1]) #profile number
 					fasta.write(item[0]+'\n') #sequence
-	return profileSeqDict
-
-def doProfileIsolate(sequenceDict,profileSeqDict):
-	pass
-
 
 def main():
 
-	version=0.01
+	version=1.0
 
-	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
+	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output. By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0 ', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary (https:/sanger-pathogens.github.io/Roary)')
 	parser.add_argument('-d', '--gffdir', help='Path to directory containing all gff files used in the Roary analysis.')
-	parser.add_argument('--version', help='Display version, and exit.', default=False,action='store_true')
+	#parser.add_argument('-cg','--core', help='Generate profile file for the core-genome only', required= False, default=False, action='store_true')
+	parser.add_argument('--version', help='Display version, and exit.', default=False, action='store_true')
 
 	args = parser.parse_args()
 
@@ -225,7 +245,7 @@ def main():
 	sequenceDict=parserGFF(args.gffdir, profileDict)
 
 	print "creating profiles..."
-	profileSeqDict= doProfileSequences(sequenceDict)
+	doProfileSequences(sequenceDict)
 
 
 	end_time = time.time()
