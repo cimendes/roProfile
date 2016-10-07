@@ -8,9 +8,9 @@ input:
 '''
 
 import csv, argparse, time, sys, os
-from BCBio import GFF
 from Bio import SeqIO
 import operator
+import pandas
 
 
 
@@ -28,7 +28,6 @@ class Logger(object):
 	def flush(self):
 		pass
 
-
 def paserGenePA(filename):
 	#parser for Roary's gene_presence_absence.csv file
 
@@ -39,10 +38,15 @@ def paserGenePA(filename):
 
 		IsolateGeneList={} #dictionary contaning all genes in the pan-genome per isolate
 		geneList=[] # for control purposes! should be the same size as the pan-genome obtained in Roary
+		coreGenes=[] #genes present in ALL isolates
 
 		for row in reader:
 			geneList.append(row[0])
 			genes=row[14:]
+
+			#check if core (present in ALL isolates)
+			if '' not in genes:
+				coreGenes.append(row[0])
 
 			for i in range(0,len(genes)):
 				genename=genes[i]
@@ -60,11 +64,15 @@ def paserGenePA(filename):
 					value=IsolateGeneList[isolate]
 					value[row[0]]=[genename]
 					IsolateGeneList[isolate]=value
+
 	print "pangenome size: " + str(len(geneList)) + " genes"
 
-	return IsolateGeneList
+	print "core size: " + str(len(coreGenes)) + " genes"
+
+	return IsolateGeneList, coreGenes
 
 def parserGFF(gffDir, profileDict):
+
 	print "Reading... "
 	for item in os.listdir(gffDir):
 		
@@ -127,7 +135,6 @@ def parserGFF(gffDir, profileDict):
 	
 	return profileDict
 
-
 def doProfileSequences(sequenceDict):
 	profileSeqDict={}
 	profileFile={}
@@ -172,19 +179,37 @@ def doProfileSequences(sequenceDict):
 					geneSeq='LNF'
 					profileNum=profileSeqDict[geneGroup][geneSeq]
 					profileFile[isolate][geneGroup]=profileNum 
+	
+	return profileSeqDict, profileFile, header
 
+def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
+	
+	if not corearg: 
 
-	print "...creating profile file..."
+		print "...creating pan-genome profile file..."
 
-	with open ("pan-profile.tsv", 'w') as profileOutFile:
-		profileOutFile.write('Isolate\t'+"\t".join(header)+'\n') #header of the file
-		for isolate,profile in profileFile.items():
-			toWrite=[]
-			toWrite.append(isolate)
-			for item in header:
-				allele=str(profile[item])
-				toWrite.append(allele)
-			profileOutFile.write('\t'.join(toWrite)+'\n')
+		with open ("pan-profile.tsv", 'w') as profileOutFile:
+			profileOutFile.write('Isolate\t'+"\t".join(header)+'\n') #header of the file
+			for isolate,profile in profileFile.items():
+				toWrite=[]
+				toWrite.append(isolate)
+				for item in header:
+					allele=str(profile[item])
+					toWrite.append(allele)
+				profileOutFile.write('\t'.join(toWrite)+'\n')
+	else:
+
+		print "... creating core-genome profile file..."
+
+		with open("core-profile.tsv", 'w') as coreProfileOutFile:
+			coreProfileOutFile.write('Isolate\t'+"\t".join(coregenes)+'\n') #header of the file, only with core genes
+			for isolate,profile in profileFile.items():
+				toWrite=[]
+				toWrite.append(isolate)
+				for item in coregenes:
+					allele=str(profile[item])
+					toWrite.append(allele)
+				coreProfileOutFile.write('\t'.join(toWrite)+'\n')
 
 	print "...creating sequence files..."
 
@@ -197,14 +222,29 @@ def doProfileSequences(sequenceDict):
 			os.remove(sequenceDir+file)
 
 	for geneGroup, profile in profileSeqDict.items():
-		with open("%s%s.fasta" % (sequenceDir,geneGroup), 'w') as fasta:
-			sorted_info=sorted(profile.items(), key=operator.itemgetter(1))
-			for item in sorted_info:
-				if item[1]==0:
-					pass
-				else:
-					fasta.write('>%s\n' % item[1]) #profile number
-					fasta.write(item[0]+'\n') #sequence
+		if geneGroup in coregenes:
+			with open("%score.%s.fasta" % (sequenceDir,geneGroup), 'w') as fasta:
+				sorted_info=sorted(profile.items(), key=operator.itemgetter(1))
+				for item in sorted_info:
+					if item[1]==0: #don't write the Locus Not Found
+						pass
+					else:
+						fasta.write('>%s\n' % item[1]) #profile number
+						fasta.write(item[0]+'\n') #sequence
+		else:
+			with open("%saccessory.%s.fasta" % (sequenceDir,geneGroup), 'w') as fasta:
+				sorted_info=sorted(profile.items(), key=operator.itemgetter(1))
+				for item in sorted_info:
+					if item[1]==0: #don't write the Locus Not Found
+						pass
+					else:
+						fasta.write('>%s\n' % item[1]) #profile number
+						fasta.write(item[0]+'\n') #sequence
+
+def transposeMatrix(filename):
+	df=pandas.read_csv(filename, sep='\t', header=0, index_col=0)
+	transpose=df.transpose()
+	transpose.to_csv(path_or_buf='gene_presence_absence_profile.tsv', sep='\t')
 
 def main():
 
@@ -213,7 +253,8 @@ def main():
 	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output. By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0 ', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary (https:/sanger-pathogens.github.io/Roary)')
 	parser.add_argument('-d', '--gffdir', help='Path to directory containing all gff files used in the Roary analysis.')
-	#parser.add_argument('-cg','--core', help='Generate profile file for the core-genome only', required= False, default=False, action='store_true')
+	parser.add_argument('-cg','--core', help='Generate profile file for the core-genome only', required= False, default=False, action='store_true')
+	parser.add_argument('-t', '--transpose', help= 'transpose the gene presence absence rtab file from roary to be used as profile', required=False, default=False, action='store_true')
 	parser.add_argument('--version', help='Display version, and exit.', default=False, action='store_true')
 
 	args = parser.parse_args()
@@ -238,16 +279,24 @@ def main():
 
 
 	#START
+
+	if args.transpose:
+		print 'transposing gene presence matrix...'
+		transposeMatrix(args.roary+'gene_presence_absence.Rtab')
+
 	print 'parsing gene presence and absence file...'
-	profileDict=paserGenePA(args.roary + 'gene_presence_absence.csv')
+	profileDict, coregenes =paserGenePA(args.roary + 'gene_presence_absence.csv')
 
 	print 'parsing gff files...'
 	sequenceDict=parserGFF(args.gffdir, profileDict)
 
 	print "creating profiles..."
-	doProfileSequences(sequenceDict)
+	profileSeqDict, profileFileDict, header=doProfileSequences(sequenceDict)
 
+	print "writing files..."
+	writeFiles(profileSeqDict, profileFileDict, header, coregenes, args.core)
 
+	
 	end_time = time.time()
 	time_taken = end_time - start_time
 	hours, rest = divmod(time_taken,3600)
