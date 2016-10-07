@@ -2,4 +2,5 @@
 *.log
 *.fasta
 *.tsv
+*.html
 sequences/
