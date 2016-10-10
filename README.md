@@ -26,6 +26,7 @@ roProfile will produce the profile files requested and the fasta sequence files,
         -c, --core            Generate profile file for the core-genome only
         -t, --transpose       transpose the gene presence absence rtab file from
                         roary to be used as profile
+        -f, --frequency       Generate pan-genome frequency plot
         --version             Display version, and exit.
 
 ## Dependencies
@@ -33,6 +34,7 @@ roProfile will produce the profile files requested and the fasta sequence files,
 - Python (2.7.x)
 - [Biopython] (http://biopython.org/)
 - [pandas] (http://pandas.pydata.org/) (if the option to transpose is used)
+- [matplotlib] (http://matplotlib.org/index.html) (if the option to generate frequency plot is used)
 
 ## Installation
 
