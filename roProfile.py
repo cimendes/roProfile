@@ -1,5 +1,5 @@
 '''
-Generation of pan-genome profile files using Roary output.
+Generation of pan-genome profile files using Roary output. 
 
 input:
 	-roary output path
@@ -10,7 +10,6 @@ input:
 import csv, argparse, time, sys, os
 from Bio import SeqIO
 import operator
-import pandas
 
 
 
@@ -242,19 +241,79 @@ def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
 						fasta.write(item[0]+'\n') #sequence
 
 def transposeMatrix(filename):
+	import pandas
+
 	df=pandas.read_csv(filename, sep='\t', header=0, index_col=0)
 	transpose=df.transpose()
 	transpose.to_csv(path_or_buf='gene_presence_absence_profile.tsv', sep='\t')
 
+
+def distributionHistogram(filename):
+	import matplotlib.pyplot as plt
+
+	acc_genes=[]
+	core_genes=[]
+
+	with open(filename, 'r') as fh:
+		reader = csv.reader(fh, delimiter='\t')
+		isolates=reader.next()[1:] 
+
+		for row in reader:
+			geneName=row[0]
+			numbers = [ int(x) for x in row[1:]]
+			freq=sum(numbers)
+			if freq == len(isolates):
+				core_genes.append((geneName, freq))
+			else:
+				acc_genes.append((geneName, freq))
+
+	#Core Genome
+	core_x=[]
+	core_y=[]
+	
+	for item in core_genes:
+		core_y.append(item[1])
+		core_x.append(core_genes.index(item))
+	
+	#Accessory Genome
+	acc_x=[]
+	acc_y=[]
+
+	for item in acc_genes:
+		acc_y.append(item[1])
+		acc_x.append(int(len(core_x)+acc_genes.index(item)))
+
+	labels=['Core Genome', 'Accessory Genome']
+
+	#figure settings
+	plt.figure(figsize=(12, 9))  
+	ax = plt.subplot(111)  
+	ax.spines["top"].set_visible(False)  
+	ax.spines["right"].set_visible(False)
+	ax.get_xaxis().set_visible(False)  
+	ax.get_yaxis().tick_left()
+
+	#plot
+	plt.plot(core_x, core_y, color="#990000", linewidth=5, solid_capstyle="butt")
+	plt.plot(acc_x,acc_y, color="#3F5D7D", linewidth=5, solid_capstyle="butt")
+	plt.title("Accessory Geneone Frequency")
+	plt.ylabel("Frequency")
+	plt.legend(labels)
+	plt.text(0,0 , s=" Pan-Genome: %s genes | Core Genome: %s genes | Acessory Genome: %s genes" % (str(len(core_genes)+(len(acc_genes))), str(len(core_genes)), str(len(acc_genes))),fontsize=10) 
+	
+	plt.savefig('panGenome.png', dpi=300, format='png')
+
+
 def main():
 
-	version=1.0
+	version=0.9
 
 	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output. By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0 ', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary (https:/sanger-pathogens.github.io/Roary)')
 	parser.add_argument('-d', '--gffdir', help='Path to directory containing all gff files used in the Roary analysis.')
 	parser.add_argument('-c','--core', help='Generate profile file for the core-genome only', required= False, default=False, action='store_true')
-	parser.add_argument('-t', '--transpose', help= 'transpose the gene presence absence rtab file from roary to be used as profile', required=False, default=False, action='store_true')
+	parser.add_argument('-t', '--transpose', help= 'Transpose the gene presence absence rtab file from roary to be used as profile', required=False, default=False, action='store_true')
+	parser.add_argument('-f', '--frequency', help= 'Generate pan-genome frequency plot.', required=False, default=False, action='store_true')
 	parser.add_argument('--version', help='Display version, and exit.', default=False, action='store_true')
 
 	args = parser.parse_args()
@@ -280,13 +339,16 @@ def main():
 
 	#START
 
+	print 'parsing gene presence and absence file...'
+	profileDict, coregenes =paserGenePA(args.roary + 'gene_presence_absence.csv')
+
 	if args.transpose:
 		print 'transposing gene presence matrix...'
 		transposeMatrix(args.roary+'gene_presence_absence.Rtab')
 
-	print 'parsing gene presence and absence file...'
-	profileDict, coregenes =paserGenePA(args.roary + 'gene_presence_absence.csv')
-
+	if args.frequency:
+		print 'generating pan-genome frequency plot..'
+		distributionHistogram(args.roary+'gene_presence_absence.Rtab')
 	print 'parsing gff files...'
 	sequenceDict=parserGFF(args.gffdir, profileDict)
 

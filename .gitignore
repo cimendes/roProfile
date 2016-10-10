@@ -3,4 +3,5 @@
 *.fasta
 *.tsv
 *.html
+*.png
 sequences/
