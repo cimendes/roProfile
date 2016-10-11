@@ -10,10 +10,13 @@ input:
 import csv, argparse, time, sys, os
 from Bio import SeqIO
 import operator
-
-
+import mpld3
+from mpld3 import utils, plugins 
+import matplotlib.pyplot as plt
+plt.switch_backend('agg') 
 
 class Logger(object):
+	#class for run.log
 	def __init__(self, out_directory):
 		self.logfile = os.path.join(out_directory, "run.log")
 		if os.path.isfile(self.logfile):
@@ -26,6 +29,34 @@ class Logger(object):
 		self.log.flush()
 	def flush(self):
 		pass
+
+class ClickInfo2(plugins.PluginBase):
+    """Plugin for getting info on click"""
+    
+    JAVASCRIPT = """
+    mpld3.register_plugin("clickinfo2", ClickInfo2);
+    ClickInfo2.prototype = Object.create(mpld3.Plugin.prototype);
+    ClickInfo2.prototype.constructor = ClickInfo2;
+    ClickInfo2.prototype.requiredProps = ["id"];
+    ClickInfo2.prototype.defaultProps = {labels:null}   function ClickInfo2(fig, props){
+        mpld3.Plugin.call(this, fig, props);
+    };
+    ClickInfo2.prototype.draw = function(){
+        var obj = mpld3.get_element(this.props.id);
+        labels = this.props.labels;
+        obj.elements().on("mousedown",
+                          function(d, i){ 
+                            window.open(labels[i], '_blank')});
+    }
+    """
+    def __init__(self, points, labels):
+        self.points = points
+        self.labels = labels
+        """if isinstance(points, matplotlib.lines.Line2D):
+            suffix = "pts"
+        else:
+            suffix = None"""
+        self.dict_ = {"type": "clickinfo2","id": utils.get_id(points, "pts"),"labels": labels}
 
 def paserGenePA(filename):
 	#parser for Roary's gene_presence_absence.csv file
@@ -64,18 +95,19 @@ def paserGenePA(filename):
 					value[row[0]]=[genename]
 					IsolateGeneList[isolate]=value
 
-	print "pangenome size: " + str(len(geneList)) + " genes"
+	print "\tpangenome size: " + str(len(geneList)) + " genes"
 
-	print "core size: " + str(len(coreGenes)) + " genes"
+	print "\tcore size: " + str(len(coreGenes)) + " genes"
 
 	return IsolateGeneList, coreGenes
 
 def parserGFF(gffDir, profileDict):
+	#parser for GFF3 files, retrieving the geneIDs and sequence coords
 
 	print "Reading... "
 	for item in os.listdir(gffDir):
 		
-		print item
+		print '\t' + str(item)
 		filename=item.replace('.gff', '')
 
 		#cleaning temp files if they exist
@@ -135,13 +167,15 @@ def parserGFF(gffDir, profileDict):
 	return profileDict
 
 def doProfileSequences(sequenceDict):
+	#function for allele number atribution
+
 	profileSeqDict={}
 	profileFile={}
 	header=[]
 
 	#profile algorythm algorithm
 	for isolate, genes in sequenceDict.items():
-		print "file " + str(isolate)
+		print "\tfile " + str(isolate)
 		#print len(genes) #control - should be same size as pan-genome
 		if isolate not in profileFile.keys():
 			profileFile[isolate]={}
@@ -182,10 +216,11 @@ def doProfileSequences(sequenceDict):
 	return profileSeqDict, profileFile, header
 
 def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
-	
-	if not corearg: 
+	#function to write profile and sequence files
 
-		print "...creating pan-genome profile file..."
+	if corearg: 
+
+		print "\t...creating pan-genome profile file..."
 
 		with open ("pan-profile.tsv", 'w') as profileOutFile:
 			profileOutFile.write('Isolate\t'+"\t".join(header)+'\n') #header of the file
@@ -196,27 +231,27 @@ def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
 					allele=str(profile[item])
 					toWrite.append(allele)
 				profileOutFile.write('\t'.join(toWrite)+'\n')
-	else:
 
-		print "... creating core-genome profile file..."
+	print "\t... creating core-genome profile file..."
 
-		with open("core-profile.tsv", 'w') as coreProfileOutFile:
-			coreProfileOutFile.write('Isolate\t'+"\t".join(coregenes)+'\n') #header of the file, only with core genes
-			for isolate,profile in profileFile.items():
-				toWrite=[]
-				toWrite.append(isolate)
-				for item in coregenes:
-					allele=str(profile[item])
-					toWrite.append(allele)
-				coreProfileOutFile.write('\t'.join(toWrite)+'\n')
+	with open("core-profile.tsv", 'w') as coreProfileOutFile:
+		coreProfileOutFile.write('Isolate\t'+"\t".join(coregenes)+'\n') #header of the file, only with core genes
+		for isolate,profile in profileFile.items():
+			toWrite=[]
+			toWrite.append(isolate)
+			for item in coregenes:
+				allele=str(profile[item])
+				toWrite.append(allele)
+			coreProfileOutFile.write('\t'.join(toWrite)+'\n')
 
-	print "...creating sequence files..."
+
+	print "\t...creating sequence files..."
 
 	sequenceDir =str(os.getcwd() + '/sequences/')
 	if not os.path.exists(sequenceDir):
 		os.makedirs(sequenceDir)
 	else:
-		print "sequence directory already exists! emptying directory..."
+		print "\t\tsequence directory already exists! emptying directory..."
 		for file in os.listdir(sequenceDir):
 			os.remove(sequenceDir+file)
 
@@ -241,6 +276,7 @@ def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
 						fasta.write(item[0]+'\n') #sequence
 
 def transposeMatrix(filename):
+	#function to obtain the gene presence and absence profile
 	import pandas
 
 	df=pandas.read_csv(filename, sep='\t', header=0, index_col=0)
@@ -248,11 +284,10 @@ def transposeMatrix(filename):
 	transpose.to_csv(path_or_buf='gene_presence_absence_profile.tsv', sep='\t')
 
 
-def distributionHistogram(filename):
-	import matplotlib.pyplot as plt
-
-	acc_genes=[]
-	core_genes=[]
+def distributionGraph(filename):
+	#function to obtain the interactive gene frequency graph for the pangenome, in html
+	genes=[]
+	coreSize=0
 
 	with open(filename, 'r') as fh:
 		reader = csv.reader(fh, delimiter='\t')
@@ -262,57 +297,40 @@ def distributionHistogram(filename):
 			geneName=row[0]
 			numbers = [ int(x) for x in row[1:]]
 			freq=sum(numbers)
+			genes.append((geneName, freq))
 			if freq == len(isolates):
-				core_genes.append((geneName, freq))
-			else:
-				acc_genes.append((geneName, freq))
+				coreSize+=1
+	x=[]
+	y=[]
+	xLabels=[]
 
-	#Core Genome
-	core_x=[]
-	core_y=[]
-	
-	for item in core_genes:
-		core_y.append(item[1])
-		core_x.append(core_genes.index(item))
-	
-	#Accessory Genome
-	acc_x=[]
-	acc_y=[]
+	for item in genes:
+		y.append(item[1])
+		x.append(genes.index(item))
+		xLabels.append(item[0])
 
-	for item in acc_genes:
-		acc_y.append(item[1])
-		acc_x.append(int(len(core_x)+acc_genes.index(item)))
+	fig,ax = plt.subplots(figsize=(12, 9))  
 
-	labels=['Core Genome', 'Accessory Genome']
+	line=ax.plot(x, y, '.', color="#3F5D7D")
+	plt.title("Pan-Genome Frequency")
+	plt.ylabel('Frequency')
+	plt.xlabel('Gene')
+	plt.text(1.1, 0.9,  s=" Pan-Genome: %s genes | Core Genome: %s genes | Acessory Genome: %s genes" % (str(len(genes)), str(coreSize), str(len(genes)-coreSize)),fontsize=10, horizontalalignment='right',verticalalignment='center', transform = ax.transAxes) 
+	ax.yaxis.labelpad = 40
 
-	#figure settings
-	plt.figure(figsize=(12, 9))  
-	ax = plt.subplot(111)  
-	ax.spines["top"].set_visible(False)  
-	ax.spines["right"].set_visible(False)
-	ax.get_xaxis().set_visible(False)  
-	ax.get_yaxis().tick_left()
+	mpld3.plugins.connect(fig, plugins.PointLabelTooltip(line[0],labels=xLabels))
 
-	#plot
-	plt.plot(core_x, core_y, color="#990000", linewidth=5, solid_capstyle="butt")
-	plt.plot(acc_x,acc_y, color="#3F5D7D", linewidth=5, solid_capstyle="butt")
-	plt.title("Accessory Geneone Frequency")
-	plt.ylabel("Frequency")
-	plt.legend(labels)
-	plt.text(0,0 , s=" Pan-Genome: %s genes | Core Genome: %s genes | Acessory Genome: %s genes" % (str(len(core_genes)+(len(acc_genes))), str(len(core_genes)), str(len(acc_genes))),fontsize=10) 
-	
-	plt.savefig('panGenome.png', dpi=300, format='png')
-
+	mpld3.save_html(fig,'panGenome.html')
 
 def main():
 
-	version=0.9
+	version='1.0.1'
 
-	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output. By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0 ', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
-	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary (https:/sanger-pathogens.github.io/Roary)')
+	parser = argparse.ArgumentParser(description='Generation of core-genome profile files using Roary output (https:/sanger-pathogens.github.io/Roary). ', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
+	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
 	parser.add_argument('-d', '--gffdir', help='Path to directory containing all gff files used in the Roary analysis.')
-	parser.add_argument('-c','--core', help='Generate profile file for the core-genome only', required= False, default=False, action='store_true')
-	parser.add_argument('-t', '--transpose', help= 'Transpose the gene presence absence rtab file from roary to be used as profile', required=False, default=False, action='store_true')
+	parser.add_argument('-p','--pangenome', help='Generate profile file for the full pan-genome, with Locus Not Found represented by default as 0.', required= False, default=False, action='store_true')
+	parser.add_argument('-t', '--transpose', help= 'Transpose the gene presence absence rtab file from roary to be used as profile.', required=False, default=False, action='store_true')
 	parser.add_argument('-f', '--frequency', help= 'Generate pan-genome frequency plot.', required=False, default=False, action='store_true')
 	parser.add_argument('--version', help='Display version, and exit.', default=False, action='store_true')
 
@@ -348,7 +366,7 @@ def main():
 
 	if args.frequency:
 		print 'generating pan-genome frequency plot..'
-		distributionHistogram(args.roary+'gene_presence_absence.Rtab')
+		distributionGraph(args.roary+'gene_presence_absence.Rtab')
 	print 'parsing gff files...'
 	sequenceDict=parserGFF(args.gffdir, profileDict)
 
@@ -356,7 +374,7 @@ def main():
 	profileSeqDict, profileFileDict, header=doProfileSequences(sequenceDict)
 
 	print "writing files..."
-	writeFiles(profileSeqDict, profileFileDict, header, coregenes, args.core)
+	writeFiles(profileSeqDict, profileFileDict, header, coregenes, args.pangenome)
 
 	
 	end_time = time.time()
