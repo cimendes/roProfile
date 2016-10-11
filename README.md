@@ -10,7 +10,7 @@ roProfile will produce the profile files requested and the fasta sequence files,
 
 
 ## Usage
-    roProfile.py [-h] [-r ROARY] [-d GFFDIR] [-c] [-t] [--version]
+    roProfile.py [-h] [-r ROARY] [-d GFFDIR] [-p] [-t] [-f] [--version]
 
     Generation of pan-genome profile files using Roary output. By default, it will
     generate a profile for the full pan-genome, with Locus Not Fund represented as 0
@@ -23,7 +23,8 @@ roProfile will produce the profile files requested and the fasta sequence files,
         -d GFFDIR, --gffdir GFFDIR
                         Path to directory containing all gff files used in the
                         Roary analysis.
-        -c, --core            Generate profile file for the core-genome only
+        -p, --pangenome       Generate profile file for the full pan-genome, with
+                        Locus Not Found represented by default as 0.
         -t, --transpose       transpose the gene presence absence rtab file from
                         roary to be used as profile
         -f, --frequency       Generate pan-genome frequency plot
@@ -33,8 +34,9 @@ roProfile will produce the profile files requested and the fasta sequence files,
 
 - Python (2.7.x)
 - [Biopython] (http://biopython.org/)
+- [matplotlib] (http://matplotlib.org/index.html)
+- [mpld3] (http://mpld3.github.io/)
 - [pandas] (http://pandas.pydata.org/) (if the option to transpose is used)
-- [matplotlib] (http://matplotlib.org/index.html) (if the option to generate frequency plot is used)
 
 ## Installation
 
