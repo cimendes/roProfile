@@ -33,10 +33,10 @@ roProfile will produce the profile files requested and the fasta sequence files,
 ## Dependencies
 
 - Python (2.7.x)
-- [Biopython] (http://biopython.org/)
-- [matplotlib] (http://matplotlib.org/index.html)
-- [mpld3] (http://mpld3.github.io/)
-- [pandas] (http://pandas.pydata.org/) (if the option to transpose is used)
+- [Biopython] (http://biopython.org/) (1.66 or similar)
+- [matplotlib] (http://matplotlib.org/index.html) (1.5.2 or similar)
+- [mpld3] (http://mpld3.github.io/) (0.2 or similar)
+- [pandas] (http://pandas.pydata.org/) (0.15.0 or similar) (if the option to transpose is used)
 
 ## Installation
 
@@ -48,7 +48,7 @@ roProfile is a standalone python script and does not require any installation. S
 roProfile  requires two input paths, the path for [Roary's] (https://sanger-pathogens.github.io/Roary/) output directory and the path to the directory containing the GFF files used in the Roary analysis.
 
 ## Output
-roProfile outputs the requested profile files and the fasta sequence files, with all alleles, for all loci, indicating the ones belonging to the accessory and core genomes, in a seperate directory.
+roProfile outputs the requested profile files and the fasta sequence files, with all alleles for all loci, indicating the ones belonging to the accessory and core genomes, in a seperate directory.
 
 ## License
 roProfile is freely available under a GPLv3 license.
