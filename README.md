@@ -23,8 +23,8 @@ roProfile will produce the profile files requested and the fasta sequence files,
         -d GFFDIR, --gffdir GFFDIR
                         Path to directory containing all gff files used in the
                         Roary analysis.
-        -p, --pangenome       Generate profile file for the full pan-genome, with
-                        Locus Not Found represented by default as 0.
+        -c, --core      Generate profile file for the core-genome only, with
+                        genes present in all isolates.
         -t, --transpose       transpose the gene presence absence rtab file from
                         roary to be used as profile
         -f, --frequency       Generate pan-genome frequency plot
