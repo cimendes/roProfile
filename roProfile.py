@@ -218,31 +218,30 @@ def doProfileSequences(sequenceDict):
 def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
 	#function to write profile and sequence files
 
-	if corearg: 
+	print "\t...creating pan-genome profile file..."
 
-		print "\t...creating pan-genome profile file..."
-
-		with open ("pan-profile.tsv", 'w') as profileOutFile:
-			profileOutFile.write('Isolate\t'+"\t".join(header)+'\n') #header of the file
-			for isolate,profile in profileFile.items():
-				toWrite=[]
-				toWrite.append(isolate)
-				for item in header:
-					allele=str(profile[item])
-					toWrite.append(allele)
-				profileOutFile.write('\t'.join(toWrite)+'\n')
-
-	print "\t... creating core-genome profile file..."
-
-	with open("core-profile.tsv", 'w') as coreProfileOutFile:
-		coreProfileOutFile.write('Isolate\t'+"\t".join(coregenes)+'\n') #header of the file, only with core genes
+	with open ("pan-profile.tsv", 'w') as profileOutFile:
+		profileOutFile.write('Isolate\t'+"\t".join(header)+'\n') #header of the file
 		for isolate,profile in profileFile.items():
 			toWrite=[]
 			toWrite.append(isolate)
-			for item in coregenes:
+			for item in header:
 				allele=str(profile[item])
 				toWrite.append(allele)
-			coreProfileOutFile.write('\t'.join(toWrite)+'\n')
+			profileOutFile.write('\t'.join(toWrite)+'\n')
+
+	if corearg:
+		print "\t... creating core-genome profile file..."
+
+		with open("core-profile.tsv", 'w') as coreProfileOutFile:
+			coreProfileOutFile.write('Isolate\t'+"\t".join(coregenes)+'\n') #header of the file, only with core genes
+			for isolate,profile in profileFile.items():
+				toWrite=[]
+				toWrite.append(isolate)
+				for item in coregenes:
+					allele=str(profile[item])
+					toWrite.append(allele)
+				coreProfileOutFile.write('\t'.join(toWrite)+'\n')
 
 
 	print "\t...creating sequence files..."
@@ -326,10 +325,10 @@ def main():
 
 	version='1.0.1'
 
-	parser = argparse.ArgumentParser(description='Generation of core-genome profile files using Roary output (https:/sanger-pathogens.github.io/Roary). ', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
+	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
 	parser.add_argument('-d', '--gffdir', help='Path to directory containing all gff files used in the Roary analysis.')
-	parser.add_argument('-p','--pangenome', help='Generate profile file for the full pan-genome, with Locus Not Found represented by default as 0.', required= False, default=False, action='store_true')
+	parser.add_argument('-c','--core', help='Generate profile file for the core-genome only, with genes present in all isolates.', required= False, default=False, action='store_true')
 	parser.add_argument('-t', '--transpose', help= 'Transpose the gene presence absence rtab file from roary to be used as profile.', required=False, default=False, action='store_true')
 	parser.add_argument('-f', '--frequency', help= 'Generate pan-genome frequency plot.', required=False, default=False, action='store_true')
 	parser.add_argument('--version', help='Display version, and exit.', default=False, action='store_true')
@@ -374,7 +373,7 @@ def main():
 	profileSeqDict, profileFileDict, header=doProfileSequences(sequenceDict)
 
 	print "writing files..."
-	writeFiles(profileSeqDict, profileFileDict, header, coregenes, args.pangenome)
+	writeFiles(profileSeqDict, profileFileDict, header, coregenes, args.core)
 
 	
 	end_time = time.time()
