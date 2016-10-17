@@ -2,7 +2,7 @@
 
 Generation of pan-genome profile files using [Roary] (https://sanger-pathogens.github.io/Roary/) output.
 
-It will use [Roary's] (https://sanger-pathogens.github.io/Roary/) gene presence and absence file to generate a profile for all genes in the pan-genome. If a gene is absent, it's indicated with the allele number 0. This might cause for the diversity in core-genome to be wheighted less. Due to this, the script behaviour might change. 
+It will use [Roary's] (https://sanger-pathogens.github.io/Roary/) gene presence and absence file to generate a profile for all genes in the pan-genome. If a gene is absent, it's indicated with the allele number 0. 
 roProfile also allows for the profile for the core (genes present in all samples) to be obtained and to transpose the gene presence absence rtab file from [Roary] (https://sanger-pathogens.github.io/Roary/) to be used as profile, indicating the pan-genome gene presence and absence with binarys. 
 roProfile will produce the profile files requested and the fasta sequence files, with all alleles, for all loci, indicating the ones belonging to the accessory and core genomes. 
 
