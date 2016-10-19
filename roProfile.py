@@ -133,8 +133,8 @@ def parserGFF(gffDir, profileDict):
 				ID=line[-1].split(';')
 				locusID=str(ID[0].split('=')[1])
 				contig=line[0]
-				begining=int(line[3])
-				end=int(line[4])
+				begining=int(line[3])-1 #to get the full sequence
+				end=int(line[4]) 
 				location=[contig, begining, end]
 				gffFiles[locusID]=location
 		
@@ -323,7 +323,7 @@ def distributionGraph(filename):
 
 def main():
 
-	version='1.0.1'
+	version='1.0.2'
 
 	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')

@@ -8,6 +8,7 @@ roProfile will produce the profile files requested and the fasta sequence files,
 
 ## Updates:
 
+19/10/2016 - version 1.0.2 - fixed a bug where the full gene sequence wasn't being retrieved by one nucleotide
 
 ## Usage
     roProfile.py [-h] [-r ROARY] [-d GFFDIR] [-p] [-t] [-f] [--version]
