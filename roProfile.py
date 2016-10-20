@@ -69,6 +69,7 @@ def paserGenePA(filename):
 		IsolateGeneList={} #dictionary contaning all genes in the pan-genome per isolate
 		geneList=[] # for control purposes! should be the same size as the pan-genome obtained in Roary
 		coreGenes=[] #genes present in ALL isolates
+		toRemove=[] #genes with multiple alleles
 
 		for row in reader:
 			geneList.append(row[0])
@@ -81,7 +82,8 @@ def paserGenePA(filename):
 			for i in range(0,len(genes)):
 				genename=genes[i]
 				if '\t' in genename: # multiple genes per locus
-					genename=genename.split('\t')
+					toRemove.append(row[0])
+					break
 				else:
 					genename=[genename]
 				isolate= isolates[i]
@@ -95,11 +97,25 @@ def paserGenePA(filename):
 					value[row[0]]=[genename]
 					IsolateGeneList[isolate]=value
 
+	#removing genes with multiple alleles
+	for isolate, geneGroupList in IsolateGeneList.items():
+		for geneGroup in geneGroupList.keys():
+			if geneGroup in toRemove:
+				del geneGroupList[geneGroup]
+	for gene in geneList:
+		if gene in toRemove:
+			geneList.remove(gene)
+	for gene in coreGenes:
+		if gene in toRemove:
+			coreGenes.remove(gene)
+
+	print "\tLoci removed due to multiple alleles: " + str(len(toRemove))
+
 	print "\tpangenome size: " + str(len(geneList)) + " genes"
 
 	print "\tcore size: " + str(len(coreGenes)) + " genes"
 
-	return IsolateGeneList, coreGenes
+	return IsolateGeneList, coreGenes, toRemove
 
 def parserGFF(gffDir, profileDict):
 	#parser for GFF3 files, retrieving the geneIDs and sequence coords
@@ -149,20 +165,11 @@ def parserGFF(gffDir, profileDict):
 
 		#assigning the gene sequence to each gene in the data scrutute
 		for genegroup, gene in profileDict[filename].items():
-			if len(gene[0])>1: # multitple genes in one locus 
-				multipleGenes=[]
-				for item in gene[0]:
-					geneInfo=gffFiles[item]
-					contigSeq=records_dict[geneInfo[0]].seq
-					geneseq=str(contigSeq[geneInfo[1]:geneInfo[2]])
-					multipleGenes.append([item,geneseq])
-				profileDict[filename][genegroup]=multipleGenes
-			else:
-				if gene[0][0] != '': # make sure the gene exists in this isolate
-					geneInfo= gffFiles[gene[0][0]]
-					contigSeq=records_dict[geneInfo[0]].seq
-					geneseq=str(contigSeq[geneInfo[1]:geneInfo[2]])
-					gene[0].append(geneseq)
+			if gene[0][0] != '': # make sure the gene exists in this isolate
+				geneInfo= gffFiles[gene[0][0]]
+				contigSeq=records_dict[geneInfo[0]].seq
+				geneseq=str(contigSeq[geneInfo[1]:geneInfo[2]])
+				gene[0].append(geneseq)
 	
 	return profileDict
 
@@ -180,38 +187,26 @@ def doProfileSequences(sequenceDict):
 		if isolate not in profileFile.keys():
 			profileFile[isolate]={}
 		for geneGroup, geneInfo in genes.items():
+			#print geneInfo
 			if geneGroup not in header:
 				header.append(geneGroup)
 			if geneGroup not in profileSeqDict.keys():
 				temp={}
 				temp['LNF']=0
 				profileSeqDict[geneGroup]=temp #initiate new entry with the profile number for Locus Not Found
-			if len(geneInfo)>1: #multiple genes in one loci
-				sequence=''
-				for item in geneInfo:
-					sequence+=item[1]
-				if sequence not in profileSeqDict[geneGroup].keys():
+			if geneInfo[0][0] != '': # make sure the gene exists in this isolate
+				if geneInfo[0][1] not in profileSeqDict[geneGroup].keys():
 					number=len(profileSeqDict[geneGroup])
-					profileSeqDict[geneGroup][sequence]=number
-					profileFile[isolate][geneGroup]=profileSeqDict[geneGroup][sequence]
+					profileSeqDict[geneGroup][geneInfo[0][1]]=number
+					profileFile[isolate][geneGroup]=profileSeqDict[geneGroup][geneInfo[0][1]]
 
-				else: 
-					profileNum=profileSeqDict[geneGroup][sequence]
-					profileFile[isolate][geneGroup]=profileNum #!!!!
-			else:
-				if geneInfo[0][0] != '': # make sure the gene exists in this isolate
-					if geneInfo[0][1] not in profileSeqDict[geneGroup].keys():
-						number=len(profileSeqDict[geneGroup])
-						profileSeqDict[geneGroup][geneInfo[0][1]]=number
-						profileFile[isolate][geneGroup]=profileSeqDict[geneGroup][geneInfo[0][1]]
-
-					else:
-						profileNum=profileSeqDict[geneGroup][geneInfo[0][1]]
-						profileFile[isolate][geneGroup]=profileNum 
 				else:
-					geneSeq='LNF'
-					profileNum=profileSeqDict[geneGroup][geneSeq]
+					profileNum=profileSeqDict[geneGroup][geneInfo[0][1]]
 					profileFile[isolate][geneGroup]=profileNum 
+			else:
+				geneSeq='LNF'
+				profileNum=profileSeqDict[geneGroup][geneSeq]
+				profileFile[isolate][geneGroup]=profileNum 
 	
 	return profileSeqDict, profileFile, header
 
@@ -323,7 +318,7 @@ def distributionGraph(filename):
 
 def main():
 
-	version='1.0.2'
+	version='1.1'
 
 	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
@@ -357,7 +352,7 @@ def main():
 	#START
 
 	print 'parsing gene presence and absence file...'
-	profileDict, coregenes =paserGenePA(args.roary + 'gene_presence_absence.csv')
+	profileDict, coregenes, toRemoveMA = paserGenePA(args.roary + 'gene_presence_absence.csv')
 
 	if args.transpose:
 		print 'transposing gene presence matrix...'
@@ -366,6 +361,7 @@ def main():
 	if args.frequency:
 		print 'generating pan-genome frequency plot..'
 		distributionGraph(args.roary+'gene_presence_absence.Rtab')
+
 	print 'parsing gff files...'
 	sequenceDict=parserGFF(args.gffdir, profileDict)
 

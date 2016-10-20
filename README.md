@@ -8,6 +8,8 @@ roProfile will produce the profile files requested and the fasta sequence files,
 
 ## Updates:
 
+20/10/2016 - version 1.1.0 - Started process to remove problematic loci. The Loci with multiple alleles are now being removed from the profile. The removal of the loci with allele size too variable and generation of a log file for the removed loci are planned to be implemented next.
+
 19/10/2016 - version 1.0.2 - fixed a bug where the full gene sequence wasn't being retrieved by one nucleotide
 
 ## Usage
