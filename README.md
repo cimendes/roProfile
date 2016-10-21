@@ -4,9 +4,11 @@ Generation of pan-genome profile files using [Roary] (https://sanger-pathogens.g
 
 It will use [Roary's] (https://sanger-pathogens.github.io/Roary/) gene presence and absence file to generate a profile for all genes in the pan-genome. If a gene is absent, it's indicated with the allele number 0. 
 roProfile also allows for the profile for the core (genes present in all samples) to be obtained and to transpose the gene presence absence rtab file from [Roary] (https://sanger-pathogens.github.io/Roary/) to be used as profile, indicating the pan-genome gene presence and absence with binarys. 
-roProfile will produce the profile files requested and the fasta sequence files, with all alleles, for all loci, indicating the ones belonging to the accessory and core genomes. 
+roProfile will produce the profile files requested and the fasta sequence files, with all alleles, for all loci, indicating the ones belonging to the accessory and core genomes. These sequence files can be analyzed with [chewBBACA's SchemaEvaluator] (https://github.com/mickaelsilva/chewBBACA/tree/master/SchemaEvaluator).
 
 ## Updates:
+
+21/10/2016 - version 1.2.0 - The loci with a size variation greater than mode+-(mode*threshold) are now removed. the threshold value is set to 0.2 by default, but can be altered. 
 
 20/10/2016 - version 1.1.0 - Started process to remove problematic loci. The Loci with multiple alleles are now being removed from the profile. The removal of the loci with allele size too variable and generation of a log file for the removed loci are planned to be implemented next.
 
@@ -31,6 +33,8 @@ roProfile will produce the profile files requested and the fasta sequence files,
         -t, --transpose       transpose the gene presence absence rtab file from
                         roary to be used as profile
         -f, --frequency       Generate pan-genome frequency plot
+        -th [THRESHOLD], --threshold [THRESHOLD]
+                        Threshold for the allele size (default=0.2).
         --version             Display version, and exit.
 
 ## Dependencies

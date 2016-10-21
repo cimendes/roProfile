@@ -102,22 +102,22 @@ def paserGenePA(filename):
 		for geneGroup in geneGroupList.keys():
 			if geneGroup in toRemove:
 				del geneGroupList[geneGroup]
-	for gene in geneList:
-		if gene in toRemove:
-			geneList.remove(gene)
-	for gene in coreGenes:
-		if gene in toRemove:
-			coreGenes.remove(gene)
 
-	print "\tLoci removed due to multiple alleles: " + str(len(toRemove))
 
 	print "\tpangenome size: " + str(len(geneList)) + " genes"
 
 	print "\tcore size: " + str(len(coreGenes)) + " genes"
 
-	return IsolateGeneList, coreGenes, toRemove
+	print "\t\t%s loci to be removed due to multiple alleles.. " % (str(len(toRemove)))
+	
+	#removal of loci with multiple alleles
+	for item in coreGenes:
+		if item in toRemove:
+			coreGenes.remove(item)
 
-def parserGFF(gffDir, profileDict):
+	return IsolateGeneList, coreGenes
+
+def parserGFF(gffDir, profileDict, threshold, coregenes):
 	#parser for GFF3 files, retrieving the geneIDs and sequence coords
 
 	print "Reading... "
@@ -141,7 +141,7 @@ def parserGFF(gffDir, profileDict):
 					else:
 						temp_contigs.write(line)
 		
-		#parsing the annotation file into a dictionary
+		#parsing the feature file into a dictionary
 		gffFiles={}
 		with open('temp_genes_gff.txt', 'r') as temp_genes:
 			for line in temp_genes:
@@ -170,8 +170,47 @@ def parserGFF(gffDir, profileDict):
 				contigSeq=records_dict[geneInfo[0]].seq
 				geneseq=str(contigSeq[geneInfo[1]:geneInfo[2]])
 				gene[0].append(geneseq)
-	
-	return profileDict
+
+	#filter geneGroups by size (0.2+-mode?)
+	geneGroupLen={}
+	for filename,geneGroupDict in profileDict.items():
+		lengthSeq=[]
+		for geneGroup, alleles in geneGroupDict.items():
+			if  len(alleles[0]) >1: #has sequence
+				if geneGroup not in geneGroupLen.keys():
+					geneGroupLen[geneGroup]=[len(alleles[0][1])]
+				else:
+					geneGroupLen[geneGroup].append(len(alleles[0][1]))
+
+	#calculating the mode for each loci
+	print 'Calculating Gene Size Mode...'
+	for geneGroup, lens in geneGroupLen.items():
+		moda=max(set(lens), key=lens.count)
+		geneGroupLen[geneGroup]=moda
+
+	print "\tUsing a threshold of " + str(threshold)
+	groupsToRemove=[]
+	for filename,geneGroupDict in profileDict.items():
+		for geneGroup, alleles in geneGroupDict.items():
+			if  len(alleles[0]) >1: #has sequence
+				if len(alleles[0][1]) > geneGroupLen[geneGroup]+(geneGroupLen[geneGroup]*threshold) or len(alleles[0][1]) < geneGroupLen[geneGroup]-(geneGroupLen[geneGroup]*threshold):
+					groupsToRemove.append(geneGroup)
+
+	print "Genes to be removed due to allele size variation: " + str(len(set(groupsToRemove)))
+	count=0
+	for item in set(groupsToRemove):
+		if item in coregenes:
+			count+=1
+			coregenes.remove(item)
+	print "\t... of which %s are in core genome." % (count)
+
+	print "removing genes..."
+	for filename,geneGroupDict in profileDict.items():
+		for geneGroup in geneGroupDict.keys():
+			if geneGroup in set(groupsToRemove):
+				del geneGroupDict[geneGroup]
+				
+	return profileDict, coregenes
 
 def doProfileSequences(sequenceDict):
 	#function for allele number atribution
@@ -225,6 +264,8 @@ def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
 				toWrite.append(allele)
 			profileOutFile.write('\t'.join(toWrite)+'\n')
 
+	print "\t\tpan-genome profile size: " + str(len(header)) + " genes"
+
 	if corearg:
 		print "\t... creating core-genome profile file..."
 
@@ -237,6 +278,8 @@ def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
 					allele=str(profile[item])
 					toWrite.append(allele)
 				coreProfileOutFile.write('\t'.join(toWrite)+'\n')
+
+		print "\t\tcore-genome profile size: " + str(len(coregenes)) + " genes"
 
 
 	print "\t...creating sequence files..."
@@ -318,7 +361,7 @@ def distributionGraph(filename):
 
 def main():
 
-	version='1.1'
+	version='1.2.0'
 
 	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
@@ -326,6 +369,7 @@ def main():
 	parser.add_argument('-c','--core', help='Generate profile file for the core-genome only, with genes present in all isolates.', required= False, default=False, action='store_true')
 	parser.add_argument('-t', '--transpose', help= 'Transpose the gene presence absence rtab file from roary to be used as profile.', required=False, default=False, action='store_true')
 	parser.add_argument('-f', '--frequency', help= 'Generate pan-genome frequency plot.', required=False, default=False, action='store_true')
+	parser.add_argument('-th', '--threshold', nargs='?', type=float, help='Threshold for the allele size (default=0.2).', required=False, default=0.2)
 	parser.add_argument('--version', help='Display version, and exit.', default=False, action='store_true')
 
 	args = parser.parse_args()
@@ -352,7 +396,7 @@ def main():
 	#START
 
 	print 'parsing gene presence and absence file...'
-	profileDict, coregenes, toRemoveMA = paserGenePA(args.roary + 'gene_presence_absence.csv')
+	profileDict, coregenes = paserGenePA(args.roary + 'gene_presence_absence.csv')
 
 	if args.transpose:
 		print 'transposing gene presence matrix...'
@@ -363,7 +407,7 @@ def main():
 		distributionGraph(args.roary+'gene_presence_absence.Rtab')
 
 	print 'parsing gff files...'
-	sequenceDict=parserGFF(args.gffdir, profileDict)
+	sequenceDict, coregenes=parserGFF(args.gffdir, profileDict, args.threshold, coregenes)
 
 	print "creating profiles..."
 	profileSeqDict, profileFileDict, header=doProfileSequences(sequenceDict)
@@ -376,7 +420,7 @@ def main():
 	time_taken = end_time - start_time
 	hours, rest = divmod(time_taken,3600)
 	minutes, seconds = divmod(rest, 60)
-	print "Runtime :" + str(hours) + "h:" + str(minutes) + "m:" + str(round(seconds, 2)) + "s" + "\n"
+	print "\nRuntime :" + str(hours) + "h:" + str(minutes) + "m:" + str(round(seconds, 2)) + "s" + "\n"
 
 	print "Finished"
 	sys.exit(0)
