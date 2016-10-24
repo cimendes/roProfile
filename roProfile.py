@@ -115,7 +115,7 @@ def paserGenePA(filename):
 		if item in toRemove:
 			coreGenes.remove(item)
 
-	return IsolateGeneList, coreGenes
+	return IsolateGeneList, coreGenes, toRemove
 
 def parserGFF(gffDir, profileDict, threshold, coregenes):
 	#parser for GFF3 files, retrieving the geneIDs and sequence coords
@@ -210,7 +210,7 @@ def parserGFF(gffDir, profileDict, threshold, coregenes):
 			if geneGroup in set(groupsToRemove):
 				del geneGroupDict[geneGroup]
 				
-	return profileDict, coregenes
+	return profileDict, coregenes, groupsToRemove
 
 def doProfileSequences(sequenceDict):
 	#function for allele number atribution
@@ -359,9 +359,30 @@ def distributionGraph(filename):
 
 	mpld3.save_html(fig,'panGenome.html')
 
+def makeLogFiles(removedMultiple, removedSize):
+	#function to write the log file for the removed loci
+
+	with open ('removedLoci.log', 'w') as logFile:
+		logFile.write('- Removed loci due to multiple alleles:\n')
+		logFile.write('\t'.join(str(s) for s in set(removedMultiple)) + '\n')
+		logFile.write('- Removed loci due to size variation:\n')
+		logFile.write('\t'.join(str(s) for s in set(removedSize)) + '\n')
+		logFile.write('- Total loci removed: %s' % (len(set(removedMultiple))+len(set(removedSize))))
+
+def newGenePA(filename, removedMultiple, removedSize):
+	with open(filename, 'r') as csvfile:
+		with open('clean_gene_presence_absence.csv', 'w') as outFile:
+			for line in csvfile:
+				items=line.split(',')
+				geneGroup=items[0][1:-1]
+				if geneGroup in removedMultiple or items[0] in removedSize:
+					pass
+				else:
+					outFile.write(line)
+
 def main():
 
-	version='1.2.0'
+	version='1.3.0'
 
 	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
@@ -370,6 +391,7 @@ def main():
 	parser.add_argument('-t', '--transpose', help= 'Transpose the gene presence absence rtab file from roary to be used as profile.', required=False, default=False, action='store_true')
 	parser.add_argument('-f', '--frequency', help= 'Generate pan-genome frequency plot.', required=False, default=False, action='store_true')
 	parser.add_argument('-th', '--threshold', nargs='?', type=float, help='Threshold for the allele size (default=0.2).', required=False, default=0.2)
+	parser.add_argument('-g', '--genefile', help="Obtain a roary's gene presence and absence csv file without the removed loci.", required=False, default=False, action='store_true')
 	parser.add_argument('--version', help='Display version, and exit.', default=False, action='store_true')
 
 	args = parser.parse_args()
@@ -396,7 +418,7 @@ def main():
 	#START
 
 	print 'parsing gene presence and absence file...'
-	profileDict, coregenes = paserGenePA(args.roary + 'gene_presence_absence.csv')
+	profileDict, coregenes, removedMultiple = paserGenePA(args.roary + 'gene_presence_absence.csv')
 
 	if args.transpose:
 		print 'transposing gene presence matrix...'
@@ -407,13 +429,19 @@ def main():
 		distributionGraph(args.roary+'gene_presence_absence.Rtab')
 
 	print 'parsing gff files...'
-	sequenceDict, coregenes=parserGFF(args.gffdir, profileDict, args.threshold, coregenes)
+	sequenceDict, coregenes, removedSize=parserGFF(args.gffdir, profileDict, args.threshold, coregenes)
 
 	print "creating profiles..."
 	profileSeqDict, profileFileDict, header=doProfileSequences(sequenceDict)
 
 	print "writing files..."
 	writeFiles(profileSeqDict, profileFileDict, header, coregenes, args.core)
+	makeLogFiles(removedMultiple, removedSize)
+
+	if args.genefile:
+		print 'generating new gene presence and absence file...'
+		newGenePA(args.roary + 'gene_presence_absence.csv', removedMultiple, removedSize)
+
 
 	
 	end_time = time.time()

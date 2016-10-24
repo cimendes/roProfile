@@ -4,4 +4,5 @@
 *.tsv
 *.html
 *.png
+*.csv
 sequences/

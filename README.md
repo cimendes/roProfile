@@ -8,6 +8,8 @@ roProfile will produce the profile files requested and the fasta sequence files,
 
 ## Updates:
 
+24/10/2016 - version 1.3.0 - Now it's possible to obtain a roary gene_presence_absence.csv file without the loci that were removed from the pan-genome profile. A log file containing the loci removed is now implemented.
+
 21/10/2016 - version 1.2.0 - The loci with a size variation greater than mode+-(mode*threshold) are now removed. the threshold value is set to 0.2 by default, but can be altered. 
 
 20/10/2016 - version 1.1.0 - Started process to remove problematic loci. The Loci with multiple alleles are now being removed from the profile. The removal of the loci with allele size too variable and generation of a log file for the removed loci are planned to be implemented next.
@@ -35,6 +37,8 @@ roProfile will produce the profile files requested and the fasta sequence files,
         -f, --frequency       Generate pan-genome frequency plot
         -th [THRESHOLD], --threshold [THRESHOLD]
                         Threshold for the allele size (default=0.2).
+        -g, --genefile        Obtain a roary's gene presence and absence csv file
+                        without the removed loci.
         --version             Display version, and exit.
 
 ## Dependencies
