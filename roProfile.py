@@ -375,7 +375,7 @@ def newGenePA(filename, removedMultiple, removedSize):
 			for line in csvfile:
 				items=line.split(',')
 				geneGroup=items[0][1:-1]
-				if geneGroup in removedMultiple or items[0] in removedSize:
+				if geneGroup in removedMultiple or geneGroup in removedSize:
 					pass
 				else:
 					outFile.write(line)
