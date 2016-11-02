@@ -75,7 +75,7 @@ This option will generate an interactive pan-genome frequency plot in a html, al
 
 #### The '-genefile' flag:
 This option will generate a new [Roary's] (https://sanger-pathogens.github.io/Roary/) gene presence and absence csv file without the genes with a large size variation or with unsplit paralog genes (considered multiple alleles). 
-![Roary gene presence and absence file](http://sanger-pathogens.github.io/Roary/images/gene_presence_and_absence.png)
+![gene_presence_absence.csv output] (http://sanger-pathogens.github.io/Roary/images/gene_presence_and_absence.png)
 
 ## Coming soon
 - Remove the loci with large size variation and multiple alleles from the presence and absence profile ('-transpose' flag)
