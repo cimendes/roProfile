@@ -1,10 +1,10 @@
 ## roProfile ##
 
-Generation of pan-genome profile files using [Roary] (https://sanger-pathogens.github.io/Roary/) output.
+Generation of wgMLST allelic profile using [Roary's] (https://sanger-pathogens.github.io/Roary/) output.
 
-It will use [Roary's] (https://sanger-pathogens.github.io/Roary/) gene presence and absence file to generate a profile for all genes in the pan-genome. If a gene is absent, it's indicated with the allele number 0. 
-roProfile also allows for the profile for the core (genes present in all samples) to be obtained and to transpose the gene presence absence rtab file from [Roary] (https://sanger-pathogens.github.io/Roary/) to be used as profile, indicating the pan-genome gene presence and absence with binarys. 
-roProfile will produce the profile files requested and the fasta sequence files, with all alleles, for all loci, indicating the ones belonging to the accessory and core genomes. These sequence files can be analyzed with [chewBBACA's SchemaEvaluator] (https://github.com/mickaelsilva/chewBBACA/tree/master/SchemaEvaluator).
+This script will use [Roary's] (https://sanger-pathogens.github.io/Roary/) gene presence and absence file to generate a profile for all loci in the pan-genome, with loci absence indicated with the number 0. 
+roProfile provides aditional options, allowing for the profile for the core (genes present in all samples) to be obtained, to transpose the gene presence absence rtab file from [Roary] (https://sanger-pathogens.github.io/Roary/) to be used as profile, and to obtain a frequency plot for the pan-genome.
+roProfile will also save the fasta sequence files in a seperate directory, with all alleles for all loci, indicating the ones belonging to the accessory and core genomes.
 
 ## Updates:
 
@@ -85,7 +85,7 @@ This option will generate a new [Roary's] (https://sanger-pathogens.github.io/Ro
 roProfile is freely available under a GPLv3 license.
 
 ## Acknowledgements
--Andrew Paje, for providing valuable assistance in understanding Roary's behaviour
+-Andrew Page, for providing valuable assistance in understanding Roary's behaviour
 
 ## Contact
 Catarina Mendes (cimendes@medicina.ulisboa.pt)
