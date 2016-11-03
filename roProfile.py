@@ -9,6 +9,7 @@ input:
 
 import csv, argparse, time, sys, os
 from Bio import SeqIO
+from Bio.Seq import Seq
 import operator
 import mpld3
 from mpld3 import utils, plugins 
@@ -150,8 +151,9 @@ def parserGFF(gffDir, profileDict, threshold, coregenes):
 				locusID=str(ID[0].split('=')[1])
 				contig=line[0]
 				begining=int(line[3])-1 #to get the full sequence
-				end=int(line[4]) 
-				location=[contig, begining, end]
+				end=int(line[4])
+				strand=line[6]
+				location=[contig, begining, end, strand]
 				gffFiles[locusID]=location
 		
 		#parsing the sequence file into a SeqIO dictionary. one contig per entry
@@ -169,7 +171,12 @@ def parserGFF(gffDir, profileDict, threshold, coregenes):
 				geneInfo= gffFiles[gene[0][0]]
 				contigSeq=records_dict[geneInfo[0]].seq
 				geneseq=str(contigSeq[geneInfo[1]:geneInfo[2]])
-				gene[0].append(geneseq)
+				if geneInfo[3] == '-':
+					seq = Seq(geneseq)
+					geneseq =str(seq.reverse_complement())
+					gene[0].append(geneseq)
+				else:
+					gene[0].append(geneseq)
 
 	#filter geneGroups by size (0.2+-mode?)
 	geneGroupLen={}
@@ -382,9 +389,9 @@ def newGenePA(filename, removedMultiple, removedSize):
 
 def main():
 
-	version='1.3.0'
+	version='1.4.0'
 
-	parser = argparse.ArgumentParser(description='Generation of pan-genome profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Fund represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
+	parser = argparse.ArgumentParser(description='Generation of wgMLST profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Found represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
 	parser.add_argument('-d', '--gffdir', help='Path to directory containing all gff files used in the Roary analysis.')
 	parser.add_argument('-c','--core', help='Generate profile file for the core-genome only, with genes present in all isolates.', required= False, default=False, action='store_true')

@@ -8,6 +8,8 @@ roProfile will also save the fasta sequence files in a seperate directory, with 
 
 ## Updates:
 
+3/11/2016 - version 1.4.0 - Fixed bug where the sequences in the reversed strand weren't being retrieved propperly. 
+
 24/10/2016 - version 1.3.0 - Now it's possible to obtain a roary gene_presence_absence.csv file without the loci that were removed from the pan-genome profile. A log file containing the loci removed is now implemented.
 
 21/10/2016 - version 1.2.0 - The loci with a size variation greater than mode+-(mode*threshold) are now removed. the threshold value is set to 0.2 by default, but can be altered. 
