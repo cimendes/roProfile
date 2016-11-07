@@ -8,6 +8,8 @@ roProfile will also save the fasta sequence files in a seperate directory, with 
 
 ## Updates:
 
+7/11/2016 - version 1.4.1 - Presence and absence profile file now excludes the loci removed due to multiple alleles or size variation. 
+
 3/11/2016 - version 1.4.0 - Fixed bug where the sequences in the reversed strand weren't being retrieved propperly. 
 
 24/10/2016 - version 1.3.0 - Now it's possible to obtain a roary gene_presence_absence.csv file without the loci that were removed from the pan-genome profile. A log file containing the loci removed is now implemented.
@@ -80,8 +82,7 @@ This option will generate a new [Roary's] (https://sanger-pathogens.github.io/Ro
 ![gene_presence_absence.csv output] (http://sanger-pathogens.github.io/Roary/images/gene_presence_and_absence.png)
 
 ## Coming soon
-- Remove the loci with large size variation and multiple alleles from the presence and absence profile ('-transpose' flag)
-- Remove the loci with large size variation and multiple alleles from the pan-genome frequency plot ('-frequency' flag)
+-s
 
 ## License
 roProfile is freely available under a GPLv3 license.

@@ -319,12 +319,16 @@ def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
 						fasta.write('>%s\n' % item[1]) #profile number
 						fasta.write(item[0]+'\n') #sequence
 
-def transposeMatrix(filename):
+def transposeMatrix(filename,removedMultiple,removedSize):
 	#function to obtain the gene presence and absence profile
 	import pandas
 
 	df=pandas.read_csv(filename, sep='\t', header=0, index_col=0)
 	transpose=df.transpose()
+	header = transpose.columns.values
+	for item in header:
+		if item in removedMultiple or item in removedSize:
+			transpose.drop(item, axis=1, inplace=True)
 	transpose.to_csv(path_or_buf='gene_presence_absence_profile.tsv', sep='\t')
 
 
@@ -389,7 +393,7 @@ def newGenePA(filename, removedMultiple, removedSize):
 
 def main():
 
-	version='1.4.0'
+	version='1.4.1'
 
 	parser = argparse.ArgumentParser(description='Generation of wgMLST profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Found represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
@@ -427,16 +431,17 @@ def main():
 	print 'parsing gene presence and absence file...'
 	profileDict, coregenes, removedMultiple = paserGenePA(args.roary + 'gene_presence_absence.csv')
 
-	if args.transpose:
-		print 'transposing gene presence matrix...'
-		transposeMatrix(args.roary+'gene_presence_absence.Rtab')
-
+	
 	if args.frequency:
 		print 'generating pan-genome frequency plot..'
 		distributionGraph(args.roary+'gene_presence_absence.Rtab')
 
 	print 'parsing gff files...'
 	sequenceDict, coregenes, removedSize=parserGFF(args.gffdir, profileDict, args.threshold, coregenes)
+
+	if args.transpose:
+		print 'transposing gene presence matrix...'
+		transposeMatrix(args.roary+'gene_presence_absence.Rtab', removedMultiple,removedSize)
 
 	print "creating profiles..."
 	profileSeqDict, profileFileDict, header=doProfileSequences(sequenceDict)
