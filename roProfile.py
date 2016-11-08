@@ -105,18 +105,24 @@ def paserGenePA(filename):
 				del geneGroupList[geneGroup]
 
 
-	print "\tpangenome size: " + str(len(geneList)) + " genes"
+	print "\tpangenome size: " + str(len(set(geneList))) + " genes"
 
-	print "\tcore size: " + str(len(coreGenes)) + " genes"
+	print "\tcore size: " + str(len(set(coreGenes))) + " genes"
 
 	print "\t\t%s loci to be removed due to multiple alleles.. " % (str(len(toRemove)))
 	
 	#removal of loci with multiple alleles
+	coreGenes=set(coreGenes)
+	count=0
+	newCore=[]
 	for item in coreGenes:
 		if item in toRemove:
-			coreGenes.remove(item)
+			count+=1
+		else:
+			newCore.append(item)
+	print "\t\t\t...%s loci in core genome.. " % (str(count))
 
-	return IsolateGeneList, coreGenes, toRemove
+	return IsolateGeneList, newCore, toRemove
 
 def parserGFF(gffDir, profileDict, threshold, coregenes):
 	#parser for GFF3 files, retrieving the geneIDs and sequence coords
@@ -205,19 +211,25 @@ def parserGFF(gffDir, profileDict, threshold, coregenes):
 
 	print "Genes to be removed due to allele size variation: " + str(len(set(groupsToRemove)))
 	count=0
-	for item in set(groupsToRemove):
-		if item in coregenes:
+	newCore=[]
+	for item in coregenes:
+		if item in groupsToRemove:
 			count+=1
-			coregenes.remove(item)
+		else:
+			newCore.append(item)
+
 	print "\t... of which %s are in core genome." % (count)
 
 	print "removing genes..."
+
+	newProfileDict=profileDict
 	for filename,geneGroupDict in profileDict.items():
 		for geneGroup in geneGroupDict.keys():
-			if geneGroup in set(groupsToRemove):
-				del geneGroupDict[geneGroup]
+			if geneGroup in groupsToRemove:
+				del newProfileDict[filename][geneGroup]
+
 				
-	return profileDict, coregenes, groupsToRemove
+	return newProfileDict, newCore, groupsToRemove
 
 def doProfileSequences(sequenceDict):
 	#function for allele number atribution
@@ -233,7 +245,6 @@ def doProfileSequences(sequenceDict):
 		if isolate not in profileFile.keys():
 			profileFile[isolate]={}
 		for geneGroup, geneInfo in genes.items():
-			#print geneInfo
 			if geneGroup not in header:
 				header.append(geneGroup)
 			if geneGroup not in profileSeqDict.keys():
@@ -284,10 +295,10 @@ def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
 				for item in coregenes:
 					allele=str(profile[item])
 					toWrite.append(allele)
-				coreProfileOutFile.write('\t'.join(toWrite)+'\n')
+					coreProfileOutFile.write('\t'.join(toWrite)+'\n')
+
 
 		print "\t\tcore-genome profile size: " + str(len(coregenes)) + " genes"
-
 
 	print "\t...creating sequence files..."
 
@@ -393,7 +404,7 @@ def newGenePA(filename, removedMultiple, removedSize):
 
 def main():
 
-	version='1.4.1'
+	version='1.4.2'
 
 	parser = argparse.ArgumentParser(description='Generation of wgMLST profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Found represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
@@ -430,7 +441,6 @@ def main():
 
 	print 'parsing gene presence and absence file...'
 	profileDict, coregenes, removedMultiple = paserGenePA(args.roary + 'gene_presence_absence.csv')
-
 	
 	if args.frequency:
 		print 'generating pan-genome frequency plot..'
