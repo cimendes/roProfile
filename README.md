@@ -8,7 +8,9 @@ roProfile will also save the fasta sequence files in a seperate directory, with 
 
 ## Updates:
 
-14/11/2016 - version 1.4.3 - Minor improvements.
+15/11/2016 - version 1.4.4 - TODO
+
+14/11/2016 - version 1.4.3 - Minor improvements. 
 
 8/11/2016 - version 1.4.2 - Minor improvements.
 

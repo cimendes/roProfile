@@ -340,13 +340,21 @@ def transposeMatrix(filename,removedMultiple,removedSize):
 	for item in header:
 		if item in removedMultiple or item in removedSize:
 			transpose.drop(item, axis=1, inplace=True)
+	clean_pa=transpose.transpose()
 
 	with open('gene_presence_absence_profile.tsv', 'w') as profileFile:
 		profileFile.write('Isolate')
 		transpose.to_csv(profileFile, sep='\t')
 
+	with open('clean_gene_presence_absence.tsv', 'w') as cleanPA:
+		clean_pa.to_csv(cleanPA, sep='\t')
 
-def distributionGraph(filename):
+	distributionGraph('clean_gene_presence_absence.tsv', 'clean_frequency_plot.html')
+
+
+
+
+def distributionGraph(filename, outputname):
 	#function to obtain the interactive gene frequency graph for the pangenome, in html
 	genes=[]
 	coreSize=0
@@ -382,7 +390,7 @@ def distributionGraph(filename):
 
 	mpld3.plugins.connect(fig, plugins.PointLabelTooltip(line[0],labels=xLabels))
 
-	mpld3.save_html(fig,'panGenome.html')
+	mpld3.save_html(fig,outputname)
 
 def makeLogFiles(removedMultiple, removedSize):
 	#function to write the log file for the removed loci
@@ -407,14 +415,13 @@ def newGenePA(filename, removedMultiple, removedSize):
 
 def main():
 
-	version='1.4.3'
+	version='1.4.4'
 
-	parser = argparse.ArgumentParser(description='Generation of wgMLST profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Found represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
+	parser = argparse.ArgumentParser(description='Generation of wgMLST profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Found represented as 0. A frequency plot for the input pan-genome is also generated.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
 	parser.add_argument('-d', '--gffdir', help='Path to directory containing all gff files used in the Roary analysis.')
 	parser.add_argument('-c','--core', help='Generate profile file for the core-genome only, with genes present in all isolates.', required= False, default=False, action='store_true')
-	parser.add_argument('-t', '--transpose', help= 'Transpose the gene presence absence rtab file from roary to be used as profile.', required=False, default=False, action='store_true')
-	parser.add_argument('-f', '--frequency', help= 'Generate pan-genome frequency plot.', required=False, default=False, action='store_true')
+	parser.add_argument('-t', '--transpose', help= 'Transpose the gene presence absence rtab file from roary to be used as profile. It will also generate a clean gene_presence_absence file, without the removed loci, and a new pan-genome frequency plot for this file.', required=False, default=False, action='store_true')
 	parser.add_argument('-th', '--threshold', nargs='?', type=float, help='Threshold for the allele size (default=0.2).', required=False, default=0.2)
 	parser.add_argument('-g', '--genefile', help="Obtain a roary's gene presence and absence csv file without the removed loci.", required=False, default=False, action='store_true')
 	parser.add_argument('--version', help='Display version, and exit.', default=False, action='store_true')
@@ -444,10 +451,8 @@ def main():
 
 	print 'parsing gene presence and absence file...'
 	profileDict, coregenes, removedMultiple = paserGenePA(args.roary + 'gene_presence_absence.csv')
-	
-	if args.frequency:
-		print 'generating pan-genome frequency plot..'
-		distributionGraph(args.roary+'gene_presence_absence.Rtab')
+	print 'generating pan-genome frequency plot..'
+	distributionGraph(args.roary+'gene_presence_absence.Rtab', 'frequency_plot.html')
 
 	print 'parsing gff files...'
 	sequenceDict, coregenes, removedSize=parserGFF(args.gffdir, profileDict, args.threshold, coregenes)
