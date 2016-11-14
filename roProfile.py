@@ -340,7 +340,10 @@ def transposeMatrix(filename,removedMultiple,removedSize):
 	for item in header:
 		if item in removedMultiple or item in removedSize:
 			transpose.drop(item, axis=1, inplace=True)
-	transpose.to_csv(path_or_buf='gene_presence_absence_profile.tsv', sep='\t')
+
+	with open('gene_presence_absence_profile.tsv', 'w') as profileFile:
+		profileFile.write('Isolate')
+		transpose.to_csv(profileFile, sep='\t')
 
 
 def distributionGraph(filename):
@@ -404,7 +407,7 @@ def newGenePA(filename, removedMultiple, removedSize):
 
 def main():
 
-	version='1.4.2'
+	version='1.4.3'
 
 	parser = argparse.ArgumentParser(description='Generation of wgMLST profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Found represented as 0.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')

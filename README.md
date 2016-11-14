@@ -8,6 +8,8 @@ roProfile will also save the fasta sequence files in a seperate directory, with 
 
 ## Updates:
 
+14/11/2016 - version 1.4.3 - Minor improvements.
+
 8/11/2016 - version 1.4.2 - Minor improvements.
 
 7/11/2016 - version 1.4.1 - Presence and absence profile file now excludes the loci removed due to multiple alleles or size variation. 
