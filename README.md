@@ -86,7 +86,7 @@ This option will generate a new [Roary's] (https://sanger-pathogens.github.io/Ro
 ![gene_presence_absence.csv output] (http://sanger-pathogens.github.io/Roary/images/gene_presence_and_absence.png)
 
 ## Coming soon
--s
+-
 
 ## License
 roProfile is freely available under a GPLv3 license.
