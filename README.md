@@ -8,7 +8,7 @@ roProfile will also save the fasta sequence files in a seperate directory, with 
 
 ## Updates:
 
-15/11/2016 - version 1.4.4 - TODO
+14/11/2016 - version 1.4.4 - The creation of the pan-genome frequency plot is now standard behaviour. When the option to transpose the presence and absence file, a new pan-genome frequency plot, without the removed loci, is created. 
 
 14/11/2016 - version 1.4.3 - Minor improvements. 
 
@@ -19,12 +19,6 @@ roProfile will also save the fasta sequence files in a seperate directory, with 
 3/11/2016 - version 1.4.0 - Fixed bug where the sequences in the reversed strand weren't being retrieved propperly. 
 
 24/10/2016 - version 1.3.0 - Now it's possible to obtain a roary gene_presence_absence.csv file without the loci that were removed from the pan-genome profile. A log file containing the loci removed is now implemented.
-
-21/10/2016 - version 1.2.0 - The loci with a size variation greater than mode+-(mode*threshold) are now removed. the threshold value is set to 0.2 by default, but can be altered. 
-
-20/10/2016 - version 1.1.0 - Started process to remove problematic loci. The Loci with multiple alleles are now being removed from the profile. The removal of the loci with allele size too variable and generation of a log file for the removed loci are planned to be implemented next.
-
-19/10/2016 - version 1.0.2 - fixed a bug where the full gene sequence wasn't being retrieved by one nucleotide
 
 ## Usage
     roProfile.py [-h] [-r ROARY] [-d GFFDIR] [-p] [-t] [-f] [--version]
