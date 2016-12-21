@@ -8,6 +8,8 @@ roProfile will also save the fasta sequence files in a seperate directory, with 
 
 ## Updates:
 
+21/12/2016 - version 1.4.5 - Fixed bug where the core-profile.tsv file wasn't being written properlly. 
+
 14/11/2016 - version 1.4.4 - The creation of the pan-genome frequency plot is now standard behaviour. When the option to transpose the presence and absence file, a new pan-genome frequency plot, without the removed loci, is created. 
 
 14/11/2016 - version 1.4.3 - Minor improvements. 

@@ -295,7 +295,7 @@ def writeFiles(profileSeqDict, profileFile, header, coregenes, corearg):
 				for item in coregenes:
 					allele=str(profile[item])
 					toWrite.append(allele)
-					coreProfileOutFile.write('\t'.join(toWrite)+'\n')
+				coreProfileOutFile.write('\t'.join(toWrite)+'\n')
 
 
 		print "\t\tcore-genome profile size: " + str(len(coregenes)) + " genes"
@@ -415,7 +415,7 @@ def newGenePA(filename, removedMultiple, removedSize):
 
 def main():
 
-	version='1.4.4'
+	version='1.4.5'
 
 	parser = argparse.ArgumentParser(description='Generation of wgMLST profile files using Roary output (https:/sanger-pathogens.github.io/Roary). By default, it will generate a profile for the full pan-genome, with Locus Not Found represented as 0. A frequency plot for the input pan-genome is also generated.', epilog='by C I Mendes (cimendes@medicina.ulisboa.pt)')
 	parser.add_argument('-r', '--roary', help='Path to directory containing all output files from Roary.')
