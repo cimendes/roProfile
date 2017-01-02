@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 Generation of pan-genome profile files using Roary output. 
 
